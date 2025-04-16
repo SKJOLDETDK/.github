@@ -15,10 +15,10 @@
 ## 🖼 Screenshots or logs
 > Add screenshots (if UI), or paste logs/output
 
-## 📎 Related issues
+## 📎 Related issues (should include all issues related)
 Closes #[issue number]
 
 ## ✅ Checklist
 - [ ] Code compiles without errors
-- [ ] Tests added or updated
+- [ ] Tests added or updated for the specifc changes added
 - [ ] PR reviewed by at least 1 team member
