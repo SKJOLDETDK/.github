@@ -4,7 +4,6 @@ title: "[FEATURE]: "
 labels: [enhancement]
 projects: [SKJOLDET Main]
 type: feature
-prioirty: low
 body:
   - type: textarea
     attributes:
