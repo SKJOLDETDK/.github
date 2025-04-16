@@ -1,7 +1,7 @@
 name: ✨ Feature Request
 description: Suggest a new feature
 title: "[FEATURE]: "
-labels: [enhancement]
+labels: [enhancement, "priority: low"]
 projects: SKJOLDET-Main
 type: feature
 body:
