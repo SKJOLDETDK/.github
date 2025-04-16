@@ -2,6 +2,8 @@ name: 🐞 Bug Report
 description: File a bug report
 title: "[BUG]: "
 labels: [bug]
+projects: SKJOLDET-Main
+type: bug
 body:
   - type: textarea
     attributes:
