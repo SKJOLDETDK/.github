@@ -2,6 +2,7 @@ name: 🛠 Task
 description: Internal development task
 title: "[TASK]: "
 labels: [task]
+type: task
 body:
   - type: textarea
     attributes:
@@ -9,3 +10,4 @@ body:
       description: A short explanation of what needs to be done.
     validations:
       required: true
+
