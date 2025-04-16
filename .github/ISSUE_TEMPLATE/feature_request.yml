@@ -2,7 +2,7 @@ name: ✨ Feature Request
 description: Suggest a new feature
 title: "[FEATURE]: "
 labels: [enhancement]
-projects: ["SKJOLDET-Main"]
+projects: SKJOLDET-Main
 type: feature
 body:
   - type: textarea
