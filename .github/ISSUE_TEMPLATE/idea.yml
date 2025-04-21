@@ -1,0 +1,32 @@
+name: 💡 Idea
+description: Suggest an idea for future development
+title: "[IDEA]: "
+labels: ["type: idea", "priority: low"]
+body:
+  - type: textarea
+    attributes:
+      label: What's the idea?
+      description: Describe the idea clearly. What is it, and what does it do?
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Why do you think it's valuable?
+      description: Who would benefit? Is there a pain point this solves?
+
+  - type: textarea
+    attributes:
+      label: Related features or inspiration
+      description: Add links, screenshots, or references if this is based on another feature/product/etc.
+
+  - type: dropdown
+    attributes:
+      label: Priority (your view)
+      description: How urgent is this?
+      options:
+        - Low (just a thought)
+        - Medium (could be nice)
+        - High (we should do this!)
+    validations:
+      required: false
