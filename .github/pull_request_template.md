@@ -12,9 +12,6 @@
 ## 🧪 How to test it?
 > Steps to test this PR locally, link to staging if relevant
 
-## 🖼 Screenshots or logs
-> Add screenshots (if UI), or paste logs/output
-
 ## 📎 Related issues (should include all issues related)
 Closes #[issue number]
 
@@ -22,3 +19,9 @@ Closes #[issue number]
 - [ ] Code compiles without errors
 - [ ] Tests added or updated for the specifc changes added
 - [ ] PR reviewed by at least 1 team member
+
+## 🖼 Screenshots and/or logs
+> Add screenshots (if UI), or paste logs/output
+
+## 🗒️ Notes
+> Write your notes here
