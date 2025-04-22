@@ -14,3 +14,8 @@ Closes #[issue number]
 
 ## 🗒️ Notes
 > Write your notes here
+
+
+## (IGNORE) 🚀 Pull request template for feature/bug/task/...: [feature/... to dev]
+Please go to the `Preview` tab and select the appropriate pull request template:
+* [Feature/bug/task/... pull request](?expand=1&template=pull_request_template.md)
