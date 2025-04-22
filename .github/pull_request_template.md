@@ -1,27 +1,26 @@
-## 📌 TESTO What does this PR do?
+## 📌 Feature/task/bug/hotfix/cleanup pull request
 
 > A short summary of the changes
 
 ## ✅ Changes
 - [ ] New feature
+- [ ] Task
 - [ ] Bug fix
-- [ ] Refactoring
-- [ ] Documentation
-- [ ] Other: ...
+- [ ] Hot fix
+- [ ] Cleanup
 
 ## 🧪 How to test it?
-> Steps to test this PR locally, link to staging if relevant
+- [ ] Automatic/unit test added?
+
+> Steps to manually test this PR locally
 
 ## 📎 Related issues (should include all issues related)
 Closes #[issue number]
 
 ## ✅ Checklist
 - [ ] Code compiles without errors
-- [ ] Tests added or updated for the specifc changes added
-- [ ] PR reviewed by at least 1 team member
-
-## 🖼 Screenshots and/or logs
-> Add screenshots (if UI), or paste logs/output
+- [ ] All automatic tests are passed (unit/e2e etc)
+- [ ] Has assigned a reviewer
 
 ## 🗒️ Notes
 > Write your notes here
