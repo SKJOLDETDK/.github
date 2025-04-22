@@ -8,8 +8,9 @@ Closes #[issue number]
 
 ## ✅ Checklist
 - [ ] Code compiles without errors
-- [ ] Tests added or updated for the specifc changes added
-- [ ] PR reviewed by at least 1 team member
+- [ ] All automatic tests are passed (unit/e2e etc)
+- [ ] Full manual test
+- [ ] Full manual test of new functionality/bug fixes
 
 ## 🗒️ Notes
 > Write your notes here
