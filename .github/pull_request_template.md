@@ -12,7 +12,7 @@
 ## 🧪 How to test it?
 - [ ] Automatic/unit test added?
 
-> Steps to manually test this PR locally
+> Steps to manually test this PR locally (focused on the functionality and bugfixes added)
 
 ## 📎 Related issues (should include all issues related)
 Closes #[issue number]
