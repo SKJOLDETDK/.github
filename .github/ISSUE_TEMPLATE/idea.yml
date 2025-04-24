@@ -2,6 +2,7 @@ name: 💡 Idea
 description: Suggest an idea for future development
 title: "[IDEA]: "
 labels: ["type: idea", "priority: low"]
+type: feature
 body:
   - type: textarea
     attributes:
