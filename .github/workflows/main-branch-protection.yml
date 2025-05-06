@@ -13,6 +13,6 @@ jobs:
         run: |
           if [[ ${GITHUB_HEAD_REF} != dev ]]; 
           then
-            echo "Error: Pull request must come from 'staging' or 'hotfix/' branch"
+            echo "Error: Pull request must come from 'dev' when going into 'main'"
             exit 1
           fi
