@@ -18,9 +18,10 @@
 Closes #[issue number]
 
 ## ✅ Checklist
-- [ ] Code compiles without errors
+- [ ] Code compiles without errors using npm run compile
 - [ ] All automatic tests are passed (unit/e2e etc)
-- [ ] Has assigned a reviewer
+- [ ] (CI-pipeline) Check CI pipeline passes on all results
+- [ ] (CI-pipeline) Review the automatic test logs and ensure all tests are passed (IMPORTANT)
 
 ## 🗒️ Notes
 > Write your notes here
