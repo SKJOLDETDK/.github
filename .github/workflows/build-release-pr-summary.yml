@@ -1,6 +1,6 @@
 # Author: Ioannis Bekiaris
 # Date: 2026-10-06
-# Version: 1.1
+# Version: 1.2
 # Description: Builds a release-impact summary for dev-to-main pull requests.
 
 name: Build release PR summary
@@ -15,7 +15,7 @@ permissions:
 jobs:
   release-summary:
     name: Build release PR summary
-    if: github.event.pull_request.head.ref == 'dev'
+    if: github.event.pull_request.head.ref == 'dev' && github.event.pull_request.base.ref == 'main'
     runs-on: ubuntu-latest
 
     steps:
@@ -77,12 +77,15 @@ jobs:
             ];
 
             const normalize = (value = '') =>
-              value.replace(/\r\n/g, '\n').trim();
+              String(value).replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
 
             const escapeTableCell = (value = '') =>
               normalize(value)
                 .replace(/\|/g, '\\|')
                 .replace(/\n+/g, '<br>');
+
+            const escapeListText = (value = '') =>
+              normalize(value).replace(/\n+/g, ' ').replace(/\s+/g, ' ');
 
             const extractSection = (body, startHeading, endHeading) => {
               const text = normalize(body);
@@ -109,34 +112,38 @@ jobs:
                 .filter((line) => /^\s*-\s*\[[xX]\]/.test(line))
                 .map((line) =>
                   line.replace(/^\s*-\s*\[[xX]\]\s*/, '').trim()
-               );
+                )
+                .filter(Boolean);
 
-            const summarizeSection = (section) => {
-             const selected = checkedItems(section);
+            const isNone = (value = '') =>
+              normalize(value).toLowerCase() === 'none';
+
+            const summarizeSection = (section = '') => {
+              const selected = checkedItems(section);
 
               if (selected.length === 0) {
                 return '⚠️ Not completed';
-             }
+              }
 
-              if (selected.length === 1 && selected[0] === 'None') {
+              if (selected.length === 1 && isNone(selected[0])) {
                 return 'None';
               }
 
-              f (selected.includes('None')) {
-               return `⚠️ Invalid selection: ${selected.join(', ')}`;
-             }
+              if (selected.some(isNone)) {
+                return `⚠️ Invalid selection: ${selected.join(', ')}`;
+              }
 
               return selected.join(', ');
-            ;
+            };
 
             core.info(
-             `Building release summary for ${owner}/${repo} PR #${releasePr.number}`
+              `Building release summary for ${owner}/${repo} PR #${releasePr.number}`
             );
 
             const commits = await github.paginate(
-              github.rest.pull.listCommits,
+              github.rest.pulls.listCommits,
               {
-               owner,
+                owner,
                 repo,
                 pull_number: releasePr.number,
                 per_page: 100
@@ -148,11 +155,11 @@ jobs:
             const prByNumber = new Map();
 
             for (const commit of commits) {
-             const associatedPrs = await github.paginate(
-               github.rest.repos.listPullRequestsAssociatedWithCommit,
-               {
+              const associatedPrs = await github.paginate(
+                github.rest.repos.listPullRequestsAssociatedWithCommit,
+                {
                   owner,
-                 repo,
+                  repo,
                   commit_sha: commit.sha,
                   per_page: 100
                 }
@@ -182,6 +189,7 @@ jobs:
 
             for (const pr of prs) {
               const body = pr.body || '';
+              const title = escapeListText(pr.title);
               const sections = {};
 
               for (const definition of sectionDefinitions) {
@@ -198,37 +206,39 @@ jobs:
 
                 if (!section) {
                   metadataWarnings.push(
-                    `#${pr.number} ${pr.title}: missing "${definition.label}" section`
+                    `#${pr.number} ${title}: missing "${definition.label}" section`
                   );
                   continue;
                 }
 
                 if (selected.length === 0) {
                   metadataWarnings.push(
-                    `#${pr.number} ${pr.title}: no selection in "${definition.label}"`
+                    `#${pr.number} ${title}: no selection in "${definition.label}"`
                   );
                   continue;
                 }
 
-                if (selected.includes('None') && selected.length > 1) {
+                if (selected.some(isNone) && selected.length > 1) {
                   metadataWarnings.push(
-                    `#${pr.number} ${pr.title}: selected "None" together with another option in "${definition.label}"`
+                    `#${pr.number} ${title}: selected "None" together with another option in "${definition.label}"`
                   );
                 }
 
-                const hasReleaseImpact =
-                  selected.length > 0 &&
-                  !selected.includes('None');
+                const releaseImpactItems = selected.filter(
+                  (item) => !isNone(item)
+                );
 
-                if (hasReleaseImpact) {
+                if (releaseImpactItems.length > 0) {
                   deploymentActions.push(
-                    `- ${pr.html_url} ${escapeTableCell(pr.title)} — ${definition.label}:** ${selected.map(escapeTableCell).join(', ')}`
+                    `- [#${pr.number}](${pr.html_url}) ${title} — ` +
+                    `**${definition.label}:** ` +
+                    releaseImpactItems.map(escapeListText).join(', ')
                   );
                 }
               }
 
               rows.push(
-                `| ${pr.html_url} | ` +
+                `| [#${pr.number}](${pr.html_url}) | ` +
                 `${escapeTableCell(pr.title)} | ` +
                 `${escapeTableCell(summarizeSection(sections.auth))} | ` +
                 `${escapeTableCell(summarizeSection(sections.environment))} | ` +
@@ -261,21 +271,18 @@ jobs:
               '## Metadata validation',
               '',
               ...(metadataWarnings.length > 0
-                ? metadataWarnings.map(
-                    (warning) => `- [ ] ⚠️ ${warning}`
-                  )
+                ? metadataWarnings.map((warning) => `- [ ] ⚠️ ${warning}`)
                 : [
                     '- [x] All included PRs contain completed release-impact metadata'
                   ]),
               '',
-              `_Generated automatically from PRs merged into \`dev\` and included in this release PR._`
+              '_Generated automatically from PRs merged into `dev` and included in this release PR._'
             ].join('\n');
 
             const currentBody = releasePr.body || '';
-            let updatedBody;
-
             const startIndex = currentBody.indexOf(startMarker);
             const endIndex = currentBody.indexOf(endMarker);
+            let updatedBody;
 
             if (
               startIndex !== -1 &&
@@ -286,15 +293,11 @@ jobs:
                 0,
                 startIndex + startMarker.length
               );
-
               const after = currentBody.slice(endIndex);
-
-              updatedBody =
-                `${before}\n${generatedSummary}\n${after}`;
+              updatedBody = `${before}\n${generatedSummary}\n${after}`;
             } else {
               updatedBody = [
                 currentBody.trim(),
-                '',
                 startMarker,
                 generatedSummary,
                 endMarker
@@ -304,7 +307,7 @@ jobs:
             }
 
             if (updatedBody !== currentBody) {
-              await github.rest.pull.update({
+              await github.rest.pulls.update({
                 owner,
                 repo,
                 pull_number: releasePr.number,
