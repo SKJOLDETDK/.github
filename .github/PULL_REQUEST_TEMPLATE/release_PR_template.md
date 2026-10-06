@@ -24,7 +24,11 @@ The release-impact summary will be generated automatically.
 
 ## 📎 Related issues
 
+<!-- related-issues:start -->
+
 > This section may be populated from the included pull requests.
+
+<!-- related-issues:end -->
 
 ## 🗒️ Release notes
 

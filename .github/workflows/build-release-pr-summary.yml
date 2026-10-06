@@ -186,11 +186,18 @@ jobs:
             const rows = [];
             const metadataWarnings = [];
             const deploymentActions = [];
+            const relatedIssues = new Set();
+            const issueRegex = /(?:close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\s+(\#\d+|[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+#\d+|https:\/\/github\.com\/[^/]+\/[^/]+\/issues\/\d+)/gi;
 
             for (const pr of prs) {
               const body = pr.body || '';
               const title = escapeListText(pr.title);
               const sections = {};
+
+              let match;
+              while ((match = issueRegex.exec(body)) !== null) {
+                relatedIssues.add(match[1]); // match[1] is the issue reference (e.g., "#125")
+              }
 
               for (const definition of sectionDefinitions) {
                 sections[definition.key] = extractSection(
@@ -279,6 +286,10 @@ jobs:
               '_Generated automatically from PRs merged into `dev` and included in this release PR._'
             ].join('\n');
 
+            const generatedIssues = relatedIssues.size > 0 
+              ? Array.from(relatedIssues).map(issue => `- Closes ${issue}`).join('\n')
+              : '> No linked issues were found in the included PRs.';
+
             const { data: latestPrData } = await github.rest.pulls.get({
               owner,
               repo,
@@ -286,31 +297,22 @@ jobs:
             });
 
             const currentBody = latestPrData.body || '';
-            const startIndex = currentBody.indexOf(startMarker);
-            const endIndex = currentBody.indexOf(endMarker);
-            let updatedBody;
 
-            if (
-              startIndex !== -1 &&
-              endIndex !== -1 &&
-              endIndex > startIndex
-            ) {
-              const before = currentBody.slice(
-                0,
-                startIndex + startMarker.length
-              );
-              const after = currentBody.slice(endIndex);
-              updatedBody = `${before}\n${generatedSummary}\n${after}`;
-            } else {
-              updatedBody = [
-                currentBody.trim(),
-                startMarker,
-                generatedSummary,
-                endMarker
-              ]
-                .filter(Boolean)
-                .join('\n\n');
-            }
+            const replaceBetweenMarkers = (text, startMark, endMark, newContent) => {
+              const startIdx = text.indexOf(startMark);
+              const endIdx = text.indexOf(endMark);
+
+              if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+                const before = text.slice(0, startIdx + startMark.length);
+                const after = text.slice(endIdx);
+                return `${before}\n\n${newContent}\n\n${after}`;
+              }
+
+              return `${text.trim()}\n\n${startMark}\n\n${newContent}\n\n${endMark}`;
+            };
+
+            let updatedBody = replaceBetweenMarkers(currentBody, startMarker, endMarker, generatedSummary);
+            updatedBody = replaceBetweenMarkers(updatedBody, '<!-- related-issues:start -->', '<!-- related-issues:end -->', generatedIssues);
 
             if (updatedBody !== currentBody) {
               await github.rest.pulls.update({
@@ -320,9 +322,9 @@ jobs:
                 body: updatedBody
               });
 
-              core.info('The release PR body was updated.');
+              core.info('The release PR body was updated with summaries and issues.');
             } else {
-              core.info('The release PR summary is already current.');
+              core.info('The release PR body is already current.');
             }
 
             if (metadataWarnings.length > 0) {
