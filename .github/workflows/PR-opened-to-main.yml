@@ -14,10 +14,14 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          repository: SKJOLDETDK/.github
+          ref: main
+          path: central-github
 
       - name: Read template
         run: |
           gh pr edit ${{ github.event.pull_request.number }} \
-            --body-file .github/PULL_REQUEST_TEMPLATE/release_PR_template.md
+            --body-file central-github/.github/PULL_REQUEST_TEMPLATE/release_PR_template.md
         env:
           GH_TOKEN: ${{ github.token }}
