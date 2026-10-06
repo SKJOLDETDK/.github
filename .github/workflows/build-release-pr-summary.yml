@@ -279,7 +279,13 @@ jobs:
               '_Generated automatically from PRs merged into `dev` and included in this release PR._'
             ].join('\n');
 
-            const currentBody = releasePr.body || '';
+            const { data: latestPrData } = await github.rest.pulls.get({
+              owner,
+              repo,
+              pull_number: releasePr.number
+            });
+
+            const currentBody = latestPrData.body || '';
             const startIndex = currentBody.indexOf(startMarker);
             const endIndex = currentBody.indexOf(endMarker);
             let updatedBody;
