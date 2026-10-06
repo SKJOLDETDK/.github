@@ -1,0 +1,326 @@
+# Author: Ioannis Bekiaris
+# Date: 2026-10-06
+# Version: 1.1
+# Description: Builds a release-impact summary for dev-to-main pull requests.
+
+name: Build release PR summary
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  release-summary:
+    name: Build release PR summary
+    if: github.event.pull_request.head.ref == 'dev'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Build release summary
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const releasePr = context.payload.pull_request;
+
+            if (!releasePr) {
+              core.setFailed(
+                'This reusable workflow must be called from a pull_request workflow.'
+              );
+              return;
+            }
+
+            const startMarker = '<!-- release-impact:start -->';
+            const endMarker = '<!-- release-impact:end -->';
+
+            const sectionDefinitions = [
+              {
+                key: 'auth',
+                label: 'Authentication and authorization',
+                start: '### Authentication and authorization',
+                end: '### Environment variables'
+              },
+              {
+                key: 'environment',
+                label: 'Environment variables',
+                start: '### Environment variables',
+                end: '### Database'
+              },
+              {
+                key: 'database',
+                label: 'Database',
+                start: '### Database',
+                end: '### API and integration impact'
+              },
+              {
+                key: 'api',
+                label: 'API and integration impact',
+                start: '### API and integration impact',
+                end: '### Infrastructure and deployment'
+              },
+              {
+                key: 'infrastructure',
+                label: 'Infrastructure and deployment',
+                start: '### Infrastructure and deployment',
+                end: '### User-facing, documentation, and compliance impact'
+              },
+              {
+                key: 'compliance',
+                label: 'User-facing, documentation, and compliance impact',
+                start: '### User-facing, documentation, and compliance impact',
+                end: '## 👀 Reviewer verification'
+              }
+            ];
+
+            const normalize = (value = '') =>
+              value.replace(/\r\n/g, '\n').trim();
+
+            const escapeTableCell = (value = '') =>
+              normalize(value)
+                .replace(/\|/g, '\\|')
+                .replace(/\n+/g, '<br>');
+
+            const extractSection = (body, startHeading, endHeading) => {
+              const text = normalize(body);
+              const startIndex = text.indexOf(startHeading);
+
+              if (startIndex === -1) {
+                return '';
+              }
+
+              const contentStart = startIndex + startHeading.length;
+              const remaining = text.slice(contentStart);
+              const endIndex = remaining.indexOf(endHeading);
+
+              if (endIndex === -1) {
+                return remaining.trim();
+              }
+
+              return remaining.slice(0, endIndex).trim();
+            };
+
+            const checkedItems = (section = '') =>
+              section
+                .split('\n')
+                .filter((line) => /^\s*-\s*\[[xX]\]/.test(line))
+                .map((line) =>
+                  line.replace(/^\s*-\s*\[[xX]\]\s*/, '').trim()
+               );
+
+            const summarizeSection = (section) => {
+             const selected = checkedItems(section);
+
+              if (selected.length === 0) {
+                return '⚠️ Not completed';
+             }
+
+              if (selected.length === 1 && selected[0] === 'None') {
+                return 'None';
+              }
+
+              f (selected.includes('None')) {
+               return `⚠️ Invalid selection: ${selected.join(', ')}`;
+             }
+
+              return selected.join(', ');
+            ;
+
+            core.info(
+             `Building release summary for ${owner}/${repo} PR #${releasePr.number}`
+            );
+
+            const commits = await github.paginate(
+              github.rest.pull.listCommits,
+              {
+               owner,
+                repo,
+                pull_number: releasePr.number,
+                per_page: 100
+              }
+            );
+
+            core.info(`Found ${commits.length} commits in the release PR.`);
+
+            const prByNumber = new Map();
+
+            for (const commit of commits) {
+             const associatedPrs = await github.paginate(
+               github.rest.repos.listPullRequestsAssociatedWithCommit,
+               {
+                  owner,
+                 repo,
+                  commit_sha: commit.sha,
+                  per_page: 100
+                }
+              );
+
+              for (const pr of associatedPrs) {
+                const isIncludedFeaturePr =
+                  pr.merged_at !== null &&
+                  pr.base.ref === 'dev' &&
+                  pr.number !== releasePr.number;
+
+                if (isIncludedFeaturePr) {
+                  prByNumber.set(pr.number, pr);
+                }
+              }
+            }
+
+            const prs = Array.from(prByNumber.values()).sort(
+              (a, b) => a.number - b.number
+            );
+
+            core.info(`Found ${prs.length} PRs merged into dev.`);
+
+            const rows = [];
+            const metadataWarnings = [];
+            const deploymentActions = [];
+
+            for (const pr of prs) {
+              const body = pr.body || '';
+              const sections = {};
+
+              for (const definition of sectionDefinitions) {
+                sections[definition.key] = extractSection(
+                  body,
+                  definition.start,
+                  definition.end
+                );
+              }
+
+              for (const definition of sectionDefinitions) {
+                const section = sections[definition.key];
+                const selected = checkedItems(section);
+
+                if (!section) {
+                  metadataWarnings.push(
+                    `#${pr.number} ${pr.title}: missing "${definition.label}" section`
+                  );
+                  continue;
+                }
+
+                if (selected.length === 0) {
+                  metadataWarnings.push(
+                    `#${pr.number} ${pr.title}: no selection in "${definition.label}"`
+                  );
+                  continue;
+                }
+
+                if (selected.includes('None') && selected.length > 1) {
+                  metadataWarnings.push(
+                    `#${pr.number} ${pr.title}: selected "None" together with another option in "${definition.label}"`
+                  );
+                }
+
+                const hasReleaseImpact =
+                  selected.length > 0 &&
+                  !selected.includes('None');
+
+                if (hasReleaseImpact) {
+                  deploymentActions.push(
+                    `- ${pr.html_url} ${escapeTableCell(pr.title)} — ${definition.label}:** ${selected.map(escapeTableCell).join(', ')}`
+                  );
+                }
+              }
+
+              rows.push(
+                `| ${pr.html_url} | ` +
+                `${escapeTableCell(pr.title)} | ` +
+                `${escapeTableCell(summarizeSection(sections.auth))} | ` +
+                `${escapeTableCell(summarizeSection(sections.environment))} | ` +
+                `${escapeTableCell(summarizeSection(sections.database))} | ` +
+                `${escapeTableCell(summarizeSection(sections.api))} | ` +
+                `${escapeTableCell(summarizeSection(sections.infrastructure))} | ` +
+                `${escapeTableCell(summarizeSection(sections.compliance))} |`
+              );
+            }
+
+            const generatedSummary = [
+              '## Included pull requests',
+              '',
+              `Included feature/task PRs: **${prs.length}**`,
+              '',
+              '| PR | Change | Auth | Environment | Database | API/integration | Deployment | User/compliance |',
+              '|---|---|---|---|---|---|---|---|',
+              ...(rows.length > 0
+                ? rows
+                : [
+                    '| — | No associated PRs merged into `dev` were found | — | — | — | — | — | — |'
+                  ]),
+              '',
+              '## Required release actions',
+              '',
+              ...(deploymentActions.length > 0
+                ? deploymentActions
+                : ['- [x] No deployment-impacting changes were declared']),
+              '',
+              '## Metadata validation',
+              '',
+              ...(metadataWarnings.length > 0
+                ? metadataWarnings.map(
+                    (warning) => `- [ ] ⚠️ ${warning}`
+                  )
+                : [
+                    '- [x] All included PRs contain completed release-impact metadata'
+                  ]),
+              '',
+              `_Generated automatically from PRs merged into \`dev\` and included in this release PR._`
+            ].join('\n');
+
+            const currentBody = releasePr.body || '';
+            let updatedBody;
+
+            const startIndex = currentBody.indexOf(startMarker);
+            const endIndex = currentBody.indexOf(endMarker);
+
+            if (
+              startIndex !== -1 &&
+              endIndex !== -1 &&
+              endIndex > startIndex
+            ) {
+              const before = currentBody.slice(
+                0,
+                startIndex + startMarker.length
+              );
+
+              const after = currentBody.slice(endIndex);
+
+              updatedBody =
+                `${before}\n${generatedSummary}\n${after}`;
+            } else {
+              updatedBody = [
+                currentBody.trim(),
+                '',
+                startMarker,
+                generatedSummary,
+                endMarker
+              ]
+                .filter(Boolean)
+                .join('\n\n');
+            }
+
+            if (updatedBody !== currentBody) {
+              await github.rest.pull.update({
+                owner,
+                repo,
+                pull_number: releasePr.number,
+                body: updatedBody
+              });
+
+              core.info('The release PR body was updated.');
+            } else {
+              core.info('The release PR summary is already current.');
+            }
+
+            if (metadataWarnings.length > 0) {
+              core.setFailed(
+                [
+                  'Some included PRs have invalid or incomplete release-impact metadata:',
+                  ...metadataWarnings
+                ].join('\n')
+              );
+            }

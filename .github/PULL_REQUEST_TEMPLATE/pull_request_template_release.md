@@ -1,21 +1,31 @@
 ## 🚀 Production release pull request
 
-> A short summary of the changes
+> Describe the purpose and scope of this release.
 
+## 📦 Release contents
 
-## 📎 Related issues (should include all issues related)
-Closes #[issue number]
+<!-- release-impact:start -->
 
-## ✅ Checklist
+The release-impact summary will be generated automatically.
+<!-- release-impact:end -->
+
+## 🧪 Release validation
+
 - [ ] Code compiles without errors
-- [ ] All automatic tests are passed (unit/e2e etc)
-- [ ] Full manual test
-- [ ] Full manual test of new functionality/bug fixes
+- [ ] All automatic tests pass
+- [ ] Full manual regression test completed
+- [ ] New functionality and bug fixes manually verified
+- [ ] Authentication and authorization changes verified
+- [ ] Environment variables configured
+- [ ] Database migrations reviewed
+- [ ] Deployment order confirmed
+- [ ] Rollback procedure confirmed
+- [ ] Post-deployment checks assigned
 
-## 🗒️ Notes
-> Write your notes here
+## 📎 Related issues
 
+> This section may be populated from the included pull requests.
 
-## (IGNORE) 🚀 Pull request template for feature/bug/task/...: [feature/... to dev]
-Please go to the `Preview` tab and select the appropriate pull request template:
-* [Feature/bug/task/... pull request](?expand=1&template=pull_request_template.md)
+## 🗒️ Release notes
+
+> Add release-level information that does not belong to an individual feature PR.
