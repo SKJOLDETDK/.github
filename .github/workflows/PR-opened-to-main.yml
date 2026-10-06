@@ -9,8 +9,8 @@ on:
       - reopened
 
 permissions:
-pull-requests: write
-contents: read
+  pull-requests: write
+  contents: read
 
 jobs:
   apply-release-template:
